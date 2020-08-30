@@ -60,6 +60,16 @@ public class MenuController : MonoBehaviour
         }
     }
 
+    public void CloseMenu(Menu menuToClose)
+    {
+        if (menuToClose.gameObject.activeInHierarchy)
+        {
+            menuToClose.menuWillDisappear.Invoke();
+        }
+        
+        menuToClose.gameObject.SetActive(false);
+    }
+
     // Выход из игры
     public void ExitGame()
     {

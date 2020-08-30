@@ -4,48 +4,52 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-
+    private Vector2 _movement;
+    
     public float moveSpeed = 2f;
 
     public Rigidbody2D rb;
     public Animator animator;
 
-    Vector2 movement;
+    public bl_Joystick BLJoystick;
 
     private bool m_FacingRight = true;  // Флаг для определения направления взгляда персонажа
 
     // Start is called before the first frame update
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        movement.x = Input.GetAxisRaw("Horizontal");
-        movement.y = Input.GetAxisRaw("Vertical");
+        // _movement.x = Input.GetAxisRaw("Horizontal");
+        // _movement.y = Input.GetAxisRaw("Vertical");
 
-        animator.SetFloat("Horizontal", movement.x);
-        animator.SetFloat("Vertical", movement.y);
-        animator.SetFloat("Speed", movement.sqrMagnitude);
+        _movement.x = BLJoystick.Horizontal;
+        _movement.y = BLJoystick.Vertical;
+        
+        animator.SetFloat("Horizontal", _movement.x);
+        animator.SetFloat("Vertical", _movement.y);
+        animator.SetFloat("Speed", _movement.sqrMagnitude);
     }
 
     void FixedUpdate()
     {
-        Move(movement.x);
+        Move(_movement.x);
     }
 
     public void Move(float move)
     {
-        rb.MovePosition(rb.position + movement * moveSpeed * Time.deltaTime);
+        rb.MovePosition(rb.position + _movement * (moveSpeed * Time.deltaTime));
 
         // Если персонаж идёт вправо, а смотрит влево - поворот спрайта
         if (move > 0 && !m_FacingRight)
         {           
             Flip();
         }
-        // Также если персонаж идёт влево, а смотри вправо - поворот спрайта
+        // Также если персонаж идёт влево, а смотрит вправо - поворот спрайта
         else if (move < 0 && m_FacingRight)
         {
             Flip();

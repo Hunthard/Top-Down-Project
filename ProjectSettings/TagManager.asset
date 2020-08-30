@@ -22,7 +22,7 @@ TagManager:
   - Environment
   - Maze
   - Background
-  - 
+  - Interactive
   - 
   - 
   - 
@@ -44,9 +44,15 @@ TagManager:
   - name: Background
     uniqueID: 3345777327
     locked: 0
-  - name: UI
-    uniqueID: 1215193043
+  - name: Walls
+    uniqueID: 1332017875
     locked: 0
   - name: Player
     uniqueID: 521605497
+    locked: 0
+  - name: Interactive
+    uniqueID: 491008759
+    locked: 0
+  - name: UI
+    uniqueID: 1215193043
     locked: 0

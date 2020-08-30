@@ -8,76 +8,171 @@ using Constant;
 public class Dungeon
 {
     /// <summary>
-    /// Высота
-    /// </summary>
-    public int Height { get; set; }
-
-    /// <summary>
     /// Ширина
     /// </summary>
-    public int Width { get; set; }
+    private int _width;
+    
+    /// <summary>
+    /// Высота
+    /// </summary>
+    private int _height;
+
+    private int _widthInBlocks;
+    private int _heightInBlocks;
+    private int _borderWidthInBlocks;
+    
+    private int _passageWidthInBlocks;
+
+    private double _gateWidthInBlocks;
 
     /// <summary>
     /// Количество изолированных регионов
     /// </summary>
-    private int regions;
+    private int _numOfRegions;
 
     /// <summary>
     /// Список комнат в подземелье
     /// </summary>
-    private List<Room> rooms;
+    private List<Room> _rooms;
+
+    /// <summary>
+    /// Список дверей подземелья
+    /// </summary>
+    private List<Vector2Int> _doors;
 
     /// <summary>
     /// Список возможных соединений между соседними регионами
     /// </summary>
-    private List<Vector2Int> regionConnectors;
+    //private List<Vector2Int> _regionConnectors;
+    
+    /// <summary>
+    /// Список возможных направлений пассажа
+    /// </summary>
+    private List<Vector2Int> _passageDirections;
+
+    /// <summary>
+    /// Список ячеек в пассаже
+    /// </summary>
+    private List<Vector2Int> _cellList;
+
+    private System.Random _random;
+    
+    public int Width
+    { 
+        get => _width;
+        private set => _width = value;
+    }
+    
+    public int Height
+    {
+        get => _height; 
+        private set => _height = value;
+    }
+    
+    public List<Room> Rooms
+    {
+        get => _rooms;
+        private set => _rooms = value;
+    }
+
+    public List<Vector2Int> Doors
+    {
+        get => _doors;
+        private set => _doors = value;
+    }
 
     /// <summary>
     /// Массив значений ячеек для отрисовки подземелья
     /// </summary>
-    private int[,] cells;
+    private int[,] _cells;
 
-    public Dungeon(int width, int height)
+    public Dungeon(int widthInBlocks, int heightInBlocks, int passageWidthInBlocks, int borderWidthInBlocks, int seed)
     {
-        Width = width;
-        Height = height;
+        _widthInBlocks = widthInBlocks;
+        _heightInBlocks = heightInBlocks;
+        _borderWidthInBlocks = borderWidthInBlocks;
+        _passageWidthInBlocks = passageWidthInBlocks;
+        
+        Width = _passageWidthInBlocks * _widthInBlocks + _widthInBlocks - 1 + 2 * _borderWidthInBlocks;
+        Height = _passageWidthInBlocks * _heightInBlocks + _heightInBlocks - 1 + 2 * _borderWidthInBlocks;
 
         if (Height % 2 == 0 || Width % 2 == 0)
         {
             throw new Exception("Maze must be odd-size");
         }
 
-        regions = 0;
-
-        rooms = new List<Room>();
-
-        regionConnectors = new List<Vector2Int>();
-
-        cells = new int[Width, Height];
-    }
-
-    public int this[int x, int y]
-    {
-        get
+        if (_passageWidthInBlocks % 2 == 0)
         {
-            return cells[x, y];
+            throw new Exception("Value must be odd");
         }
+
+        _numOfRegions = 0;
+
+        Rooms = new List<Room>(Width * Height / 2);
+        
+        _doors = new List<Vector2Int>(Width + Height);
+
+        //_regionConnectors = new List<Vector2Int>(Width * Height / 2);
+
+        _passageDirections = new List<Vector2Int>(4);
+
+        _cellList = new List<Vector2Int>(Width * Height / 2);
+
+        _random = new System.Random(seed);
+
+        _cells = new int[Width, Height];
     }
+
+    public Dungeon(Container.Parameter parameters, int seed)
+    {
+        _widthInBlocks = parameters.widthInBlocks;
+        _heightInBlocks = parameters.heightInBlocks;
+        _passageWidthInBlocks = parameters.passageWidthInBlocks;
+        _borderWidthInBlocks = parameters.borderWidthInBlocks;
+        _gateWidthInBlocks = parameters.gateWidthInBlocks;
+        
+        Width = _passageWidthInBlocks * _widthInBlocks + _widthInBlocks - 1 + 2 * _borderWidthInBlocks;
+        Height = _passageWidthInBlocks * _heightInBlocks + _heightInBlocks - 1 + 2 * _borderWidthInBlocks;
+        
+        _numOfRegions = 0;
+
+        Rooms = new List<Room>(Width * Height / 2);
+        
+        Doors = new List<Vector2Int>(Width + Height);
+
+        //_regionConnectors = new List<Vector2Int>(Width * Height / 2);
+
+        _passageDirections = new List<Vector2Int>(4);
+
+        _cellList = new List<Vector2Int>(Width * Height / 2);
+
+        _random = new System.Random(seed);
+
+        _cells = new int[Width, Height];
+    }
+
+    /// <summary>
+    /// Обращение по индексу к значению ячейки массива _cells
+    /// </summary>
+    /// <param name="x">x</param>
+    /// <param name="y">y</param>
+    /// <returns>Значение элемента массива _cells</returns>
+    public int this[int x, int y] => _cells[x, y];
 
     /// <summary>
     /// Добавить комнату и заполнить её область в массиве ячеек
     /// значением соответствующего региона
     /// </summary>
-    /// <param name="newRoom"></param>
+    /// <param name="newRoom">Новая комната</param>
     private void AddRoom(ref RectInt newRoom)
     {
-        rooms.Add(new Room(ref newRoom, regions));
+        Rooms.Add(new Room(ref newRoom, _numOfRegions));
 
-        regions++;
+        _numOfRegions++;
 
         for (int x = newRoom.xMin; x <= newRoom.xMax; x++)
             for (int y = newRoom.yMin; y <= newRoom.yMax; y++)
-                cells[x, y] = regions;
+                _cells[x, y] = _numOfRegions;
     }
 
     /// <summary>
@@ -89,50 +184,19 @@ public class Dungeon
     private bool IsOverlaps(RectInt checkingRoom, List<Room> otherRooms)
     {
         // Искусственое увеличение размеров комнаты чтобы сохранить
-        // минимальное расстояние между комнатами в 1 блок
-        checkingRoom.SetMinMax(new Vector2Int(checkingRoom.xMin - 1, checkingRoom.yMin - 1),
-                            new Vector2Int(checkingRoom.xMax + 1, checkingRoom.yMax + 1)
+        // минимальное расстояние между комнатами равным ширине коридора
+        checkingRoom.SetMinMax(new Vector2Int(checkingRoom.xMin - _passageWidthInBlocks,
+                                              checkingRoom.yMin - _passageWidthInBlocks),
+                               new Vector2Int(checkingRoom.xMax + _passageWidthInBlocks,
+                                              checkingRoom.yMax + _passageWidthInBlocks)
                             );
 
         foreach (var room in otherRooms)
         {
-            if (checkingRoom.Overlaps(room.area)) return true;
+            if (checkingRoom.Overlaps(room.Area)) return true;
         }
 
         return false;
-    }
-
-    /// <summary>
-    /// Найти свободных соседей ячейки
-    /// </summary>
-    /// <param name="_currentCell">Координаты текущей ячейки</param>
-    private List<Vector2Int> FindNeighbors(Vector2Int _currentCell)
-    {
-        List<Vector2Int> passageDirections = new List<Vector2Int>();
-
-        foreach (var dir in Container.DIRECTIONS)
-        {
-            var _x = (_currentCell + dir * 2).x;
-            var _y = (_currentCell + dir * 2).y;
-
-            if (_x > 0 && _x < Width && _y > 0 && _y < Height &&
-                Container.IsWall(cells[_x, _y])
-                )
-            {
-                passageDirections.Add(dir);
-            }
-        }
-
-        return passageDirections;
-    }
-
-    /// <summary>
-    /// Добавить ячейку к лабиринту и заполнить её значением соответсвующего региона
-    /// </summary>
-    /// <param name="position">Координаты ячейки</param>
-    private void Carve(Vector2Int position)
-    {
-        cells[position.x, position.y] = regions;
     }
 
     /// <summary>
@@ -141,33 +205,80 @@ public class Dungeon
     /// <param name="startPosition">Начальная позиция</param>
     private void RecursiveBacktracking(Vector2Int startPosition)
     {
-        List<Vector2Int> cellList = new List<Vector2Int>();
+        _cellList.Clear();
 
-        var rand = new System.Random();
+        _cellList.Add(startPosition);
+        Carve(startPosition, Vector2Int.zero);
+        
+        _numOfRegions++;
 
-        cellList.Add(startPosition);
-        Carve(startPosition);
-
-        regions++;
-
-        while (cellList.Count != 0)
+        while (_cellList.Count != 0)
         {
-            var currentCell = cellList.Last();
+            var currentCell = _cellList.Last();
+            
+            FindNeighbors(currentCell);
 
-            List<Vector2Int> passageDirections = FindNeighbors(currentCell);
-
-            if (passageDirections.Count != 0)
+            if (_passageDirections.Count != 0)
             {
-                int index = rand.Next(passageDirections.Count);
+                int index = _random.Next(_passageDirections.Count);
+                
+                Carve(currentCell, _passageDirections[index] * (_passageWidthInBlocks / 2 + 1));
 
-                Carve(currentCell + passageDirections[index]);
+                _cellList.Add(currentCell + _passageDirections[index] * (_passageWidthInBlocks * 2 - _passageWidthInBlocks / 2 * 2));
 
-                cellList.Add(currentCell + passageDirections[index] * 2);
-                Carve(currentCell + passageDirections[index] * 2);
+                Carve(currentCell,_passageDirections[index] * (_passageWidthInBlocks * 2 - _passageWidthInBlocks / 2 * 2));
             }
             else
             {
-                cellList.RemoveAt(cellList.Count - 1);
+                _cellList.RemoveAt(_cellList.Count - 1);
+            }
+        }
+    }
+    
+    //// <summary>
+    //// Добавить ячейку к лабиринту и заполнить её значением соответсвующего региона
+    //// </summary>
+    //// <param name="position">Координаты ячейки</param>
+    
+    /// <summary>
+    /// Добавить ячейку к лабиринту и заполнить её значением соответствующего региона
+    /// </summary>
+    /// <param name="position">Позиция ячейки</param>
+    /// <param name="direction">Направление</param>
+    private void Carve(Vector2Int position, Vector2Int direction)
+    {
+        FillPassage(position + direction);
+    }
+
+    private void FillPassage(Vector2Int position)
+    {
+        for (int x = -_passageWidthInBlocks / 2; x < (_passageWidthInBlocks / 2) + 1; x++)
+        {
+            for (int y = -_passageWidthInBlocks / 2; y < (_passageWidthInBlocks / 2) + 1; y++)
+            {
+                _cells[position.x + x, position.y + y] = _numOfRegions;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Найти свободных соседей ячейки
+    /// </summary>
+    /// <param name="_currentCell">Координаты текущей ячейки</param>
+    private void FindNeighbors(Vector2Int _currentCell)
+    {
+        _passageDirections.Clear();
+
+        foreach (var dir in Container.DIRECTIONS)
+        {
+            var x = (_currentCell + dir * (_passageWidthInBlocks + 1)).x;
+            var y = (_currentCell + dir * (_passageWidthInBlocks + 1)).y;
+
+            if (x > 0 && x < Width && y > 0 && y < Height &&
+                Container.IsWall(_cells[x, y])
+            )
+            {
+                _passageDirections.Add(dir);
             }
         }
     }
@@ -177,48 +288,50 @@ public class Dungeon
     /// </summary>
     private void FindConnections()
     {
-        foreach (var _room in rooms)
+        int x;
+        int y;
+
+        int gateBounds = 1;
+        
+        foreach (var _room in Rooms)
         {
-            _room.connections.Clear();
+            _room.Connections.Clear();
 
-            int _x;
-            int _y;
-
-            for (_x = _room.area.xMin; _x <= _room.area.xMax; _x++)
+            for (x = _room.Area.xMin + gateBounds; x <= _room.Area.xMax - gateBounds; x++)
             {
-                _y = _room.area.yMin - 1;
-                if (_y > 0 && cells[_x, _y - 1] != (int)Container.Blocks.Wall)
+                y = _room.Area.yMin - 1;
+                if (y > 0 && _cells[x, y - 1] != (int)Container.Blocks.Wall)
                 {
-                    _room.connections.Add(new Vector2Int(_x, _y));
+                    _room.Connections.Add(new Vector2Int(x, y));
 
-                    regionConnectors.Add(new Vector2Int(_x, _y));
+                    //_regionConnectors.Add(new Vector2Int(x, y));
                 }
 
-                _y = _room.area.yMax + 1;
-                if (_y < Height - 1 && cells[_x, _y + 1] != (int)Container.Blocks.Wall)
+                y = _room.Area.yMax + 1;
+                if (y < Height - 1 && _cells[x, y + 1] != (int)Container.Blocks.Wall)
                 {
-                    _room.connections.Add(new Vector2Int(_x, _y));
+                    _room.Connections.Add(new Vector2Int(x, y));
 
-                    regionConnectors.Add(new Vector2Int(_x, _y));
+                    //_regionConnectors.Add(new Vector2Int(x, y));
                 }
             }
 
-            for (_y = _room.area.yMin; _y <= _room.area.yMax; _y++)
+            for (y = _room.Area.yMin + gateBounds; y <= _room.Area.yMax - gateBounds; y++)
             {
-                _x = _room.area.xMin - 1;
-                if (_x > 0 && cells[_x - 1, _y] != (int)Container.Blocks.Wall)
+                x = _room.Area.xMin - 1;
+                if (x > 0 && _cells[x - 1, y] != (int)Container.Blocks.Wall)
                 {
-                    _room.connections.Add(new Vector2Int(_x, _y));
+                    _room.Connections.Add(new Vector2Int(x, y));
 
-                    regionConnectors.Add(new Vector2Int(_x, _y));
+                    //_regionConnectors.Add(new Vector2Int(x, y));
                 }
 
-                _x = _room.area.xMax + 1;
-                if (_x < Width - 1 && cells[_x + 1, _y] != (int)Container.Blocks.Wall)
+                x = _room.Area.xMax + 1;
+                if (x < Width - 1 && _cells[x + 1, y] != (int)Container.Blocks.Wall)
                 {
-                    _room.connections.Add(new Vector2Int(_x, _y));
+                    _room.Connections.Add(new Vector2Int(x, y));
 
-                    regionConnectors.Add(new Vector2Int(_x, _y));
+                    //_regionConnectors.Add(new Vector2Int(x, y));
                 }
             }
         }
@@ -229,39 +342,62 @@ public class Dungeon
     /// </summary>
     private void MergeRegions()
     {
-        while (regionConnectors.Count > 0)
+        foreach (var room in Rooms)
         {
-            var rand = UnityEngine.Random.Range(0, regionConnectors.Count);
-
-            var _connector = regionConnectors[rand];
-
-            if (cells[_connector.x + 1, _connector.y] == (int)Container.Blocks.Wall || cells[_connector.x - 1, _connector.y] == (int)Container.Blocks.Wall)
+            while (room.Connections.Count > 0)
             {
-                if (cells[_connector.x, _connector.y + 1] != cells[_connector.x, _connector.y - 1])
+                var rand = _random.Next(0, room.Connections.Count);
+
+                var _connector = room.Connections[rand];
+
+                if (_cells[_connector.x + 1, _connector.y] == (int)Container.Blocks.Wall || _cells[_connector.x - 1, _connector.y] == (int)Container.Blocks.Wall)
                 {
-                    var oldRegion = Math.Max(cells[_connector.x, _connector.y - 1], cells[_connector.x, _connector.y + 1]);
-                    var newRegion = Math.Min(cells[_connector.x, _connector.y - 1], cells[_connector.x, _connector.y + 1]);
+                    if (_cells[_connector.x, _connector.y + 1] != _cells[_connector.x, _connector.y - 1])
+                    {
+                        var oldRegion = Math.Max(_cells[_connector.x, _connector.y - 1], _cells[_connector.x, _connector.y + 1]);
+                        var newRegion = Math.Min(_cells[_connector.x, _connector.y - 1], _cells[_connector.x, _connector.y + 1]);
 
-                    cells[_connector.x, _connector.y] = newRegion;
+                        _cells[_connector.x, _connector.y] = newRegion;
 
-                    ConnectToRegion(newRegion, oldRegion);
+                        //room.AddRoom(room.Connections[rand]);
+                        AddDoor(room.Connections[rand]);
+                        ConnectToRegion(newRegion, oldRegion);
+                    }
                 }
-            }
-            else
-            {
-                if (cells[_connector.x + 1, _connector.y] != cells[_connector.x - 1, _connector.y])
+                else
                 {
-                    var oldRegion = Math.Max(cells[_connector.x - 1, _connector.y], cells[_connector.x + 1, _connector.y]);
-                    var newRegion = Math.Min(cells[_connector.x - 1, _connector.y], cells[_connector.x + 1, _connector.y]);
+                    if (_cells[_connector.x + 1, _connector.y] != _cells[_connector.x - 1, _connector.y])
+                    {
+                        var oldRegion = Math.Max(_cells[_connector.x - 1, _connector.y], _cells[_connector.x + 1, _connector.y]);
+                        var newRegion = Math.Min(_cells[_connector.x - 1, _connector.y], _cells[_connector.x + 1, _connector.y]);
 
-                    cells[_connector.x, _connector.y] = newRegion;
+                        _cells[_connector.x, _connector.y] = newRegion;
 
-                    ConnectToRegion(newRegion, oldRegion);
+                        //room.AddRoom(room.Connections[rand]);
+                        AddDoor(room.Connections[rand]);
+                        ConnectToRegion(newRegion, oldRegion);
+                    }
                 }
-            }
 
-            regionConnectors.RemoveAt(rand);
+                room.Connections.RemoveAt(rand);
+            }
         }
+
+        /*if (_regions > 1)
+        {
+            for (int x = _passageWidth - _passageWidth / 2; x < Width; x += _passageWidth * 2)
+            {
+                for (int y = _passageWidth - _passageWidth / 2; y < Height; y += _passageWidth * 2)
+                {
+                    if (!Container.IsWall(_cells[x, y]) &&
+                        _cells[x, y] > 1
+                    )
+                    {
+                        FindNeighbors(new Vector2Int(x, y));
+                    }
+                }
+            }
+        }*/
     }
 
     /// <summary>
@@ -275,54 +411,51 @@ public class Dungeon
         {
             for (int _y = 1; _y < Height; _y++)
             {
-                if (cells[_x, _y] == oldRegion)
+                if (_cells[_x, _y] == oldRegion)
                 {
-                    cells[_x, _y] = newRegion;
+                    _cells[_x, _y] = newRegion;
                 }
             }
         }
 
-        regions--;
+        _numOfRegions--;
     }
 
     /// <summary>
     /// Создать и разместить комнаты
     /// </summary>
     /// <param name="logEnable">Логирование</param>
-    public void GenerateRooms(int attemptsToPlaceRooms = 200, int roomExtraSize = 0, bool logEnable = false)
+    private void GenerateRooms(int attemptsToPlaceRooms, int roomExtraSize, bool logEnable = false)
     {
-        for (int i = 0; i < attemptsToPlaceRooms; i++)
+        // Коэффициент для определения количества
+        // блоков минимального размера в ширине и высоте комнаты
+        int horizontalBlockCoefficient;
+        int verticalBlockCoefficient;
+        
+        // Ширина и высота комнаты
+        int roomWidth;
+        int roomHeight;
+
+        // Количество блоков для отступа координат
+        int numBlocks;
+        
+        for (var i = 0; i < attemptsToPlaceRooms; i++)
         {
-            Debug.Log("Attempt to spawn room");
+            horizontalBlockCoefficient = _random.Next(2, 5 + roomExtraSize);
+            roomWidth = _passageWidthInBlocks * horizontalBlockCoefficient + horizontalBlockCoefficient - 2;
+            
+            verticalBlockCoefficient = _random.Next(2, 5 + roomExtraSize);
+            roomHeight = _passageWidthInBlocks * verticalBlockCoefficient + verticalBlockCoefficient - 2;
+            
+            numBlocks = _random.Next(0, _widthInBlocks - horizontalBlockCoefficient);
+            var x =  _passageWidthInBlocks * numBlocks + numBlocks + 1;
+            numBlocks = _random.Next(0, _heightInBlocks - verticalBlockCoefficient);
+            var y = _passageWidthInBlocks * numBlocks + numBlocks + 1;
 
-            // Высота и ширина комнаты
-            var size = UnityEngine.Random.Range(1, 3 + roomExtraSize) * 2 + 2;
+            var newRoom = new RectInt(x, y, roomWidth, roomHeight);
 
-            // Значение, добавляющееся к ширине или высоте комнаты,
-            // чтобы спавнить не только квадратные комнаты
-            var rectangularity = UnityEngine.Random.Range(0, (size / 2)) * 2;
-
-            var _width = size;
-            var _height = size;
-
-            if (UnityEngine.Random.Range(0f, 2f) <= 1.0)
-            {
-                _width += rectangularity;
-            }
-            else
-            {
-                _height += rectangularity;
-            }
-
-            // Костыли из чисел в правой части нужны для сохранения
-            // расстояния между комнатами равному нечётному кол-ву блоков 
-            var x = UnityEngine.Random.Range(0, (Width - _width) - 2) / 2 * 2 + 1;
-            var y = UnityEngine.Random.Range(0, (Height - _height) - 2) / 2 * 2 + 1;
-
-            var newRoom = new RectInt(x, y, _width, _height);
-
-            // Проверка на пересечение новой комнаты с уже имеющимеся
-            if (IsOverlaps(newRoom, rooms)) continue;
+            // Проверка на пересечение новой комнаты с уже имеющимися
+            if (IsOverlaps(newRoom, Rooms)) continue;
 
             AddRoom(ref newRoom);
         }
@@ -337,15 +470,15 @@ public class Dungeon
     /// Сгенерировать лабиринты
     /// </summary>
     /// <param name="logEnable">Логирование</param>
-    public void GenerateMaze(bool logEnable = false)
+    private void GenerateMaze(bool logEnable = false)
     {
-        for (int _x = 1; _x < Width; _x += 2)
+        for (int x = _passageWidthInBlocks - _passageWidthInBlocks / 2; x < Width; x += _passageWidthInBlocks + 1)
         {
-            for (int _y = 1; _y < Height; _y += 2)
+            for (int y = _passageWidthInBlocks - _passageWidthInBlocks / 2; y < Height; y += _passageWidthInBlocks + 1)
             {
-                if (cells[_x, _y] == (int)Container.Blocks.Wall)
+                if (Container.IsWall(_cells[x, y]))
                 {
-                    RecursiveBacktracking(new Vector2Int(_x, _y));
+                    RecursiveBacktracking(new Vector2Int(x, y));
                 }
             }
         }
@@ -360,15 +493,15 @@ public class Dungeon
     /// Объединить регионы
     /// </summary>
     /// <param name="logEnable">Логирование</param>
-    public void ConnectRegions(bool logEnable = false)
+    private void ConnectRegions(bool logEnable = false)
     {
         FindConnections();
-
+        
         MergeRegions();
 
         if (logEnable)
         {
-            Debug.Log($"{regions} regions left");
+            Debug.Log($"{_numOfRegions} regions left");
             Debug.Log("Connecting regions is done");
         }
     }
@@ -377,7 +510,7 @@ public class Dungeon
     /// Избавиться от тупиков
     /// </summary>
     /// <param name="logEnable">Логирование</param>
-    public void RemoveDeadEnds(bool logEnable = false)
+    private void RemoveDeadEnds(bool logEnable = false)
     {
         var done = false;
         int stop = 0;
@@ -392,19 +525,19 @@ public class Dungeon
             {
                 for (int _y = 1; _y < Height; _y++)
                 {
-                    if (cells[_x, _y] == (int)Container.Blocks.Wall) continue;
+                    if (_cells[_x, _y] == (int)Container.Blocks.Wall) continue;
 
                     int exits = 0;
 
                     foreach (var dir in Container.DIRECTIONS)
                     {
-                        if (cells[_x + dir.x, _y + dir.y] != (int)Container.Blocks.Wall) exits++;
+                        if (_cells[_x + dir.x, _y + dir.y] != (int)Container.Blocks.Wall) exits++;
                     }
 
                     if (exits > 1) continue;
 
                     done = false;
-                    cells[_x, _y] = (int)Container.Blocks.Wall;
+                    _cells[_x, _y] = (int)Container.Blocks.Wall;
                 }
             }
         }
@@ -413,6 +546,35 @@ public class Dungeon
         {
             Debug.Log($"{stop} ITERATIONS");
             Debug.Log("Dead ends was removed");
+        }
+    }
+
+    private void AddDoor(Vector2Int newDoor)
+    {
+        Doors.Add(newDoor);
+    }
+
+    /// <summary>
+    /// Генерация подземелья
+    /// </summary>
+    /// <param name="attemptsToPlaceRooms">Количество попыток для спавна комнат</param>
+    /// <param name="roomExtraSize">Добавочный размер комнаты</param>
+    /// <param name="deadEndsEnable">Наличие тупиков</param>
+    /// <param name="logEnable">Логирование</param>
+    public void Generate(int attemptsToPlaceRooms = 200, int roomExtraSize = 0, bool deadEndsEnable = false, bool logEnable = false)
+    {
+        GenerateRooms(attemptsToPlaceRooms: attemptsToPlaceRooms, roomExtraSize: roomExtraSize, logEnable: logEnable);
+        GenerateMaze(logEnable);
+        ConnectRegions(logEnable);
+
+        if (!deadEndsEnable)
+        {
+            RemoveDeadEnds(logEnable);
+        }
+
+        if (logEnable)
+        {
+            Debug.Log($"\n Width: {Width} \n Height: {Height}");
         }
     }
 }
