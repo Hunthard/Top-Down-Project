@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d1514134bc4fbd41bb739b1b9a49231, type: 3}
-  m_Name: Temp
+  m_Name: Wall Rule Tile
   m_EditorClassIdentifier: 
   m_DefaultSprite: {fileID: 7201287770987287912, guid: 3872c6905ca289443b15cbdc6988b2f7,
     type: 3}
