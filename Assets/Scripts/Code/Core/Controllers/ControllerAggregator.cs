@@ -34,6 +34,8 @@ public class ControllerAggregator : IControllerAggregator
 {
     private readonly InputController _inputController;
     private readonly CameraController _cameraController;
+    private readonly PlayerController _playerController;
+    private readonly DungeonController _dungeonController;
 
     private readonly List<BaseController> _controllers;
 
@@ -41,10 +43,14 @@ public class ControllerAggregator : IControllerAggregator
     {
         _inputController = new InputController();
         _cameraController = new CameraController();
+        _playerController = new PlayerController();
+        _dungeonController = new DungeonController();
         _controllers = new List<BaseController>()
         {
             _inputController,
             _cameraController,
+            _playerController,
+            _dungeonController
         };
     }
 

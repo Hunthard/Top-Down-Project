@@ -43,6 +43,11 @@ public class SessionManager : MonoBehaviour
         OnStart();
     }
 
+    public IControllerAggregator GetIControllerAggregator()
+    {
+        return _controllerAggregator;
+    }
+    
     private void OnStart()
     {
         _controllerAggregator.OnStart();

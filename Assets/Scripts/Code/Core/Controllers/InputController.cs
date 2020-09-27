@@ -20,10 +20,17 @@ public interface IInputController : IController
 
 public class InputController : BaseController, IInputController
 {
+    private bl_Joystick _blJoystick;
     public Vector2 MoveDirection { get; private set; }
     public Vector2 MouseDirection { get; private set; }
     public Vector2 MousePosition { get; private set; }
-    
+
+    public override void OnStart()
+    {
+        base.OnStart();
+        _blJoystick = Object.FindObjectOfType<bl_Joystick>();
+    }
+
     public override void OnUpdate(float dt)
     {
         GetMoveDirection();
@@ -54,7 +61,15 @@ public class InputController : BaseController, IInputController
     
     private void GetMoveDirection()
     {
-        MoveDirection = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxisRaw("Vertical"));
+        var useJoystick = true;
+        if (useJoystick)
+        {
+            MoveDirection = new Vector2(_blJoystick.Horizontal, _blJoystick.Vertical);
+        }
+        else
+        {
+            MoveDirection = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxisRaw("Vertical"));
+        }
     }
 
     private void GetMouseDirection()

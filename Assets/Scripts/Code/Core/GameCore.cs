@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using UnityEngine.SceneManagement;
@@ -10,8 +11,13 @@ public class GameCore : MonoBehaviour
     
     private IServicesAggregator _servicesAggregator;
 
+    public static GameCore Instance => _instance;
+    private static GameCore _instance;
+
+
     private void Awake()
     {
+        _instance = this;
         UICore.LoadingScreen.Show();
         DontDestroyOnLoad(this);
     }

@@ -1,9 +1,7 @@
-﻿using Constant;
-using TempNamespace;
-
+﻿using System;
+using Constant;
 using System.Collections;
 using System.Reflection;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.Universal;
 using UnityEngine.Serialization;
@@ -16,12 +14,6 @@ public class DungeonGenerator : MonoBehaviour
     private int _width;
     private int _height;
 
-    public GameObject shadowCasterGenerator;
-
-    [Header("Игрок")]
-    public GameObject player;
-
-    public bool IsSpawnPlayer = false;
     public enum ValidWidth
     {
         [InspectorName("1")]
@@ -93,6 +85,26 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Awake()
     {
+        Debug.LogError("Awake");
+    }
+
+    public void Generate()
+    {
+        Debug.LogError("Generate");
+        globalLight = GameObject.Find("Global Light 2D");
+        
+        Prepare();
+        // кол-во блоков * ширину коридора + кол-во блоков - 1 + 2 блока для границ
+        
+        _dungeon = new Dungeon(Parameters, seed);
+        
+        _dungeon.Generate(attemptsToPlaceRooms, roomExtraSize, deadEnds, logEnable);
+        
+        DrawDungeon(_dungeon);
+    }
+    
+    void Prepare()
+    {
         Parameters.passageWidthInBlocks = (int) PassageWidth;
         Parameters.widthInBlocks = horizontalNumBlocks / 2;
         Parameters.heightInBlocks = verticalNumBlocks / 2;
@@ -115,31 +127,56 @@ public class DungeonGenerator : MonoBehaviour
 
     private void Start()
     {
-        // кол-во блоков * ширину коридора + кол-во блоков - 1 + 2 блока для границ
-        
-        _dungeon = new Dungeon(Parameters, seed);
-        
-        _dungeon.Generate(attemptsToPlaceRooms, roomExtraSize, deadEnds, logEnable);
-        
-        DrawDungeon(_dungeon);
-        //DrawRooms(dungeon);
-
-        if (IsSpawnPlayer)
-        {
-            SpawnPlayer(_dungeon);
-        }
-        else
-        {
-            globalLight.GetComponent<Light2D>().intensity = 1;
-        }
+        Debug.LogError("Start");
     }
 
+    private bool a = true;
+    private bool b = true;
+    private bool c = true;
+    private void Update()
+    {
+        if (a)
+        {
+            a = false;
+            Debug.LogError("Update");
+        }
+        
+    }
+    
+    private void FixedUpdate()
+    {
+        if (b)
+        {
+            b = false;
+            Debug.LogError("FixedUpdate");
+        }
+    }
+    
+    private void LateUpdate()
+    {
+        if (c)
+        {
+            c = false;
+            Debug.LogError("LateUpdate");
+        }
+    }
+    
     private IEnumerator ShadowCaster()
     {
+        colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
+        Debug.LogError("1 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
         colliderLayerTilemap.SetTile(Vector3Int.zero, null);
-        yield return null;
-        //EditorApplication.ExecuteMenuItem("Tools/Generate Shadow Casters");
+        colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
+        Debug.LogError("2 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
+        yield return new WaitForEndOfFrame();
+        colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
+        Debug.LogError("3 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
+        yield return new WaitForEndOfFrame();
+        colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
+        Debug.LogError("4 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
         ShadowCaster2DGenerator.GenerateShadowCasters();
+        colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
+        Debug.LogError("5 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
         colliderLayerTilemap.SetTile(Vector3Int.zero, wallTile);
 
         // Костыли чтобы ShadowCaster2D не кидал тени на стены
@@ -153,12 +190,8 @@ public class DungeonGenerator : MonoBehaviour
                 layerWithoutWalls[layerIndex] = SortingLayer.layers[layerIndex].id;
             }
         }
-
-        var shadowCaster2D = colliderLayerTilemap.GetComponentInChildren<ShadowCaster2D>();
         
-        // FieldInfo fieldInfo;
-        // fieldInfo = shadowCaster2D.GetType().GetField("m_ApplyToSortingLayers", BindingFlags.Instance | BindingFlags.Instance);
-        // fieldInfo.SetValue(shadowCaster2D, layerWithoutWalls);
+        var shadowCaster2D = colliderLayerTilemap.GetComponentInChildren<ShadowCaster2D>();
 
         shadowCaster2D.GetType().GetField("m_ApplyToSortingLayers", BindingFlags.NonPublic | BindingFlags.Instance)
             .SetValue(shadowCaster2D, layerWithoutWalls);
@@ -193,7 +226,6 @@ public class DungeonGenerator : MonoBehaviour
             }
             else
             {
-                //colliderLayerTilemap.SetTile(new Vector3Int(door.x, door.y + wallExtraHeight, 0), null);
                 colliderLayerTilemap.SetTile(new Vector3Int(door.x, door.y, 0), null);
                 
                 baseLayerTilemap.SetTile(new Vector3Int(door.x, door.y, 0), bricksTile);
@@ -204,85 +236,13 @@ public class DungeonGenerator : MonoBehaviour
         StartCoroutine(ShadowCaster());
     }
 
-    private void DrawRooms(Dungeon dungeon)
+    public Vector3 GetRandomPoint
     {
-        //var tilePosition = new Vector3Int();
-        
-        foreach (var room in dungeon.Rooms)
+        get
         {
-            /*for (int x = room.Area.xMin; x <= room.Area.xMax; x++)
-            {
-                // Текстура стену
-                baseLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMin - 1 + wallExtraHeight, 0), null);
-                // Верхняя часть стены
-                colliderLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMin - 1 + wallExtraHeight, 0), horizontalWallTile);
-                // Нижняя часть стены
-                colliderLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMin - 1, 0), bottomWallTile);
-                
-                //  Текстура стену
-                baseLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMax + 1 + wallExtraHeight, 0), null);
-                // Верхняя часть стены
-                colliderLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMax + 1 + wallExtraHeight, 0), horizontalWallTile);
-                // Нижняя часть стены
-                colliderLayerTilemap.SetTile(new Vector3Int(x, room.Area.yMax + 1, 0), bottomWallTile);
-            }
-
-            for (int y = room.Area.yMin + wallExtraHeight; y <= room.Area.yMax + wallExtraHeight; y++)
-            {
-                // Текстура стены
-                baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, y, 0), null);
-                // Левая стена
-                colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, y, 0), verticalWallTile);
-                
-                // Текстура стены
-                baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, y, 0), null);
-                // Правая стена
-                colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, y, 0), verticalWallTile);
-            }
-            
-            // Текстура стены
-            baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, room.Area.yMin, 0),
-                null);
-            baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, room.Area.yMin, 0),
-                null);
-            
-            // Левый нижний угол
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, room.Area.yMin - 1, 0),
-                bottomWallTile);
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, room.Area.yMin - 1 + wallExtraHeight, 0),
-                leftBottomCornerWallTile);
-            
-            // Правый нижний угол
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, room.Area.yMin - 1, 0),
-                bottomWallTile);
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, room.Area.yMin - 1 + wallExtraHeight, 0),
-                rightBottomCornerWallTile);
-            
-            // Текстура стены
-            baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, room.Area.yMax + 1 + wallExtraHeight, 0),
-                null);
-            baseLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, room.Area.yMax + 1 + wallExtraHeight, 0),
-                null);
-            
-            // Левый верхний угол
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMin - 1, room.Area.yMax + 1 + wallExtraHeight, 0),
-                leftTopCornerWallTile);
-            // Правый верхний угол
-            colliderLayerTilemap.SetTile(new Vector3Int(room.Area.xMax + 1, room.Area.yMax + 1 + wallExtraHeight, 0),
-                rightTopCornerWallTile);*/
+            var rand = new System.Random();
+            int index = rand.Next(0, _dungeon.Rooms.Count);
+            return new Vector3(_dungeon.Rooms[index].Area.center.x, _dungeon.Rooms[index].Area.center.y, 0);
         }
-    }
-
-    private void SpawnPlayer(Dungeon dungeon)
-    {
-        var rand = new System.Random();
-
-        int index = rand.Next(0, dungeon.Rooms.Count);
-
-        player.transform.position =
-            new Vector3(dungeon.Rooms[index].Area.center.x, dungeon.Rooms[index].Area.center.y, 0);
-        
-        player.SetActive(true);
-        //Instantiate(player, new Vector3(dungeon.Rooms[index].Area.center.x, dungeon.Rooms[index].Area.center.y, 0), Quaternion.identity);
     }
 }

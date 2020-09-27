@@ -23,7 +23,19 @@ MonoBehaviour:
     m_SerializedLabels: []
     m_MainAsset: {fileID: 0}
     m_TargetAsset: {fileID: 0}
-  - m_GUID: a1ecdb8b45b5e3146a3979ecbdd73936
+  - m_GUID: 1ca72b2da2facc54c9ee38453d123c9a
+    m_Address: dungeon_prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: 696f9e485426f0e4aa1ff8548e48f680
+    m_Address: player_prefab
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    m_MainAsset: {fileID: 0}
+    m_TargetAsset: {fileID: 0}
+  - m_GUID: d2b97ec8f47102d4dbddaf3ac1bac046
     m_Address: game_scene
     m_ReadOnly: 0
     m_SerializedLabels: []
