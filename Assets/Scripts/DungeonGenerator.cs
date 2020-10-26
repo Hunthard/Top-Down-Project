@@ -130,8 +130,6 @@ public class DungeonGenerator : MonoBehaviour
     private void Start()
     {
         Debug.LogError("Start");
-        Debug.Log($"Math.Round(12.3, ToEven) = {Math.Round(12.3, MidpointRounding.ToEven)})");
-        Debug.Log($"Math.Round(12.7, ToEven) = {Math.Round(12.7, MidpointRounding.ToEven)})");
     }
 
     private bool a = true;
@@ -257,22 +255,22 @@ public class DungeonGenerator : MonoBehaviour
     {
         _pointsInPath = new List<Vector3>(_width * _height / 2);
         
-        var startPoint = new Vector2Int(1, 2);
-        var currentPoint = new Vector2Int(1,1);
+        var startPoint = new Vector3(1, 2);
         
-        var currentDirection = Vector2Int.right;
+        var currentPoint = new Vector3(1, 1);
+        
+        var currentDirection = Vector3.right;
+        
+        var nextCell = new Vector2Int();
 
-        _pointsInPath.Add(new Vector3(
-            currentPoint.x - Vector2Int.up.x * 0.3f,
-            currentPoint.y - Vector2Int.up.y * 0.3f)
-            );
+        _pointsInPath.Add(currentPoint);
         
         var directions = new DirectionList();
 
-        directions.Add(new Vector2Int(0, 0), Vector2Int.up); // up
-        directions.Add(new Vector2Int(0, -1), Vector2Int.right); // right
-        directions.Add(new Vector2Int(-1,-1), Vector2Int.down); // down
-        directions.Add(new Vector2Int(-1, 0), Vector2Int.left); // left
+        directions.Add(new Vector2Int(0, 0), Vector3.up); // up
+        directions.Add(new Vector2Int(0, -1), Vector3.right); // right
+        directions.Add(new Vector2Int(-1,-1), Vector3.down); // down
+        directions.Add(new Vector2Int(-1, 0), Vector3.left); // left
 
         int temp = 0;
         do
@@ -281,15 +279,16 @@ public class DungeonGenerator : MonoBehaviour
 
             foreach (DirectionNode direction in directions)
             {
-                var nextCell = currentPoint + direction.nextCell;
+                nextCell.Set(
+                    (int)Math.Round(currentPoint.x) + direction.nextCell.x,
+                    (int)Math.Round(currentPoint.y) + direction.nextCell.y
+                    ); 
+
                 if (_dungeon[nextCell.x, nextCell.y] == 0)
                 {
                     currentPoint = currentPoint + direction.nextPoint;
 
-                    _pointsInPath.Add(new Vector3(
-                        currentPoint.x,
-                        currentPoint.y)
-                    );
+                    _pointsInPath.Add(currentPoint);
                     currentDirection = direction.nextPoint;
                     break;
                 }

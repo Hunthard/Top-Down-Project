@@ -50,7 +50,7 @@ namespace DungeonUtilities
             count = 0;
         }
         
-        public void Add(Vector2Int nextCell, Vector2Int nextPoint)
+        public void Add(Vector2Int nextCell, Vector3 nextPoint)
         {
             DirectionNode newNode = new DirectionNode();
 
@@ -73,7 +73,7 @@ namespace DungeonUtilities
             count++;
         }
 
-        public void OrderPointDirections(Vector2Int direction)
+        public void OrderPointDirections(Vector3 direction)
         {
             var curDir = Head;
             
@@ -105,7 +105,8 @@ namespace DungeonUtilities
     public class DirectionNode
     {
         public Vector2Int nextCell;
-        public Vector2Int nextPoint;
+        // public Vector2Int nextPoint;
+        public Vector3 nextPoint;
         public DirectionNode Next { get; set; }
         public DirectionNode Prev { get; set; }
     }
