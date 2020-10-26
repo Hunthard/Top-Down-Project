@@ -284,24 +284,11 @@ public class DungeonGenerator : MonoBehaviour
                 var nextCell = currentPoint + direction.nextCell;
                 if (_dungeon[nextCell.x, nextCell.y] == 0)
                 {
-                    if (currentDirection != direction.nextPoint)
-                    {
-                        _pointsInPath.Add(new Vector3(
-                            currentPoint.x + currentDirection.x * 0.3f,
-                            currentPoint.y + currentDirection.y * 0.3f)
-                        );
-                    }
-                    
                     currentPoint = currentPoint + direction.nextPoint;
 
-                    // if (_pointsInPath.Count > 1 && direction.nextPoint == currentDirection)
-                    // {
-                    //     _pointsInPath.RemoveAt(_pointsInPath.Count - 1);
-                    // }
-
                     _pointsInPath.Add(new Vector3(
-                        currentPoint.x - directions.Head.nextPoint.x * 0.3f,
-                        currentPoint.y - directions.Head.nextPoint.y * 0.3f)
+                        currentPoint.x,
+                        currentPoint.y)
                     );
                     currentDirection = direction.nextPoint;
                     break;
