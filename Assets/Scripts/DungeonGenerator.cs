@@ -1,6 +1,8 @@
 ﻿using System;
-using Constant;
+using DungeonUtilities;
 using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.Universal;
@@ -128,6 +130,8 @@ public class DungeonGenerator : MonoBehaviour
     private void Start()
     {
         Debug.LogError("Start");
+        Debug.Log($"Math.Round(12.3, ToEven) = {Math.Round(12.3, MidpointRounding.ToEven)})");
+        Debug.Log($"Math.Round(12.7, ToEven) = {Math.Round(12.7, MidpointRounding.ToEven)})");
     }
 
     private bool a = true;
@@ -233,7 +237,8 @@ public class DungeonGenerator : MonoBehaviour
         }
         
         Debug.Log("Dungeon drawn");
-        StartCoroutine(ShadowCaster());
+        //StartCoroutine(ShadowCaster());
+        SetWallShadows();
     }
 
     public Vector3 GetRandomPoint
@@ -243,6 +248,99 @@ public class DungeonGenerator : MonoBehaviour
             var rand = new System.Random();
             int index = rand.Next(0, _dungeon.Rooms.Count);
             return new Vector3(_dungeon.Rooms[index].Area.center.x, _dungeon.Rooms[index].Area.center.y, 0);
+        }
+    }
+
+    private List<Vector3> _pointsInPath;
+    private List<Vector2Int> _cellList;
+    public void SetWallShadows()
+    {
+        _pointsInPath = new List<Vector3>(_width * _height / 2);
+        
+        var startPoint = new Vector2Int(1, 2);
+        var currentPoint = new Vector2Int(1,1);
+        
+        var currentDirection = Vector2Int.right;
+
+        _pointsInPath.Add(new Vector3(
+            currentPoint.x - Vector2Int.up.x * 0.3f,
+            currentPoint.y - Vector2Int.up.y * 0.3f)
+            );
+        
+        var directions = new DirectionList();
+
+        directions.Add(new Vector2Int(0, 0), Vector2Int.up); // up
+        directions.Add(new Vector2Int(0, -1), Vector2Int.right); // right
+        directions.Add(new Vector2Int(-1,-1), Vector2Int.down); // down
+        directions.Add(new Vector2Int(-1, 0), Vector2Int.left); // left
+
+        int temp = 0;
+        do
+        {
+            directions.OrderPointDirections(currentDirection);
+
+            foreach (DirectionNode direction in directions)
+            {
+                var nextCell = currentPoint + direction.nextCell;
+                if (_dungeon[nextCell.x, nextCell.y] == 0)
+                {
+                    if (currentDirection != direction.nextPoint)
+                    {
+                        _pointsInPath.Add(new Vector3(
+                            currentPoint.x + currentDirection.x * 0.3f,
+                            currentPoint.y + currentDirection.y * 0.3f)
+                        );
+                    }
+                    
+                    currentPoint = currentPoint + direction.nextPoint;
+
+                    // if (_pointsInPath.Count > 1 && direction.nextPoint == currentDirection)
+                    // {
+                    //     _pointsInPath.RemoveAt(_pointsInPath.Count - 1);
+                    // }
+
+                    _pointsInPath.Add(new Vector3(
+                        currentPoint.x - directions.Head.nextPoint.x * 0.3f,
+                        currentPoint.y - directions.Head.nextPoint.y * 0.3f)
+                    );
+                    currentDirection = direction.nextPoint;
+                    break;
+                }
+            }
+
+            if (temp > 500) break;
+            temp++;
+
+        } while (currentPoint != startPoint);
+        
+        _pointsInPath.Add(new Vector3(0, 2));
+        _pointsInPath.Add(new Vector3(0, _height));
+        _pointsInPath.Add(new Vector3(_width, _height));
+        _pointsInPath.Add(new Vector3(_width, 0));
+        _pointsInPath.Add(new Vector3(0, 0));
+        _pointsInPath.Add(new Vector3(0, 2));
+        _pointsInPath.Add(new Vector3(1, 2));
+
+        TempNamespace.ShadowCaster2DGenerator.GenerateTilemapShadowCasters(_pointsInPath);
+    }
+
+    public void AddToPath(Vector2Int currentCell)
+    {
+        foreach (var direction in Container.DIRECTIONS)
+        {
+            var x = currentCell.x + direction.x;
+            var y = currentCell.y + direction.y;
+            
+            if (x > 0 && x < _width && y > 0 && y < _height &&
+                _dungeon[x, y] == 0)
+            {
+                _cellList.Add(new Vector2Int(x, y));
+
+                if (direction == Vector2Int.up)
+                {
+                    
+                }
+            }
         }
     }
 }

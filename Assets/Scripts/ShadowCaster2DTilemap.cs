@@ -58,7 +58,7 @@ namespace TempNamespace
 
             for (int i = 0; i < colliders.Length; ++i)
             {
-                GenerateTilemapShadowCasters(colliders[i]);
+                //GenerateTilemapShadowCasters(colliders[i]);
             }
         }
 
@@ -71,42 +71,18 @@ namespace TempNamespace
         /// It is recommended to call this method in editor only.
         /// </remarks>
         /// <param name="collider">The collider which will be the parent of the new shadow casters.</param>
-        public static void GenerateTilemapShadowCasters(CompositeCollider2D collider)
+        public static void GenerateTilemapShadowCasters(List<Vector3> pointsInPath3D)
         {
-            // First, it destroys the existing shadow casters
-            ShadowCaster2D[] existingShadowCasters = collider.GetComponentsInChildren<ShadowCaster2D>();
+            GameObject newShadowCaster = new GameObject("ShadowCaster2D");
+            newShadowCaster.isStatic = true;
+            //newShadowCaster.transform.SetParent(collider.transform, false);
 
-            for (int i = 0; i < existingShadowCasters.Length; ++i)
-            {
-                GameObject.DestroyImmediate(existingShadowCasters[i].gameObject);
-            }
-
-            // Then it creates the new shadow casters, based on the paths of the composite collider
-            int pathCount = collider.pathCount;
-            List<Vector2> pointsInPath = new List<Vector2>();
-            List<Vector3> pointsInPath3D = new List<Vector3>();
-
-            for (int i = 0; i < pathCount; ++i)
-            {
-                collider.GetPath(i, pointsInPath);
-
-                GameObject newShadowCaster = new GameObject("ShadowCaster2D");
-                newShadowCaster.isStatic = true;
-                newShadowCaster.transform.SetParent(collider.transform, false);
-
-                for (int j = 0; j < pointsInPath.Count; ++j)
-                {
-                    pointsInPath3D.Add(pointsInPath[j]);
-                }
-
-                ShadowCaster2D component = newShadowCaster.AddComponent<ShadowCaster2D>();
-                component.SetPath(pointsInPath3D.ToArray());
-                component.SetPathHash(Random.Range(int.MinValue,
-                    int.MaxValue)); // The hashing function GetShapePathHash could be copied from the LightUtility class
-
-                pointsInPath.Clear();
-                pointsInPath3D.Clear();
-            }
+            ShadowCaster2D component = newShadowCaster.AddComponent<ShadowCaster2D>();
+            component.SetPath(pointsInPath3D.ToArray());
+            component.SetPathHash(Random.Range(int.MinValue,
+                int.MaxValue)); // The hashing function GetShapePathHash could be copied from the LightUtility class
+            
+            pointsInPath3D.Clear();
         }
 
     }

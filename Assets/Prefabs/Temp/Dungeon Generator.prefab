@@ -46,10 +46,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PassageWidth: 3
   GateWidth: 1
-  horizontalNumBlocks: 99
-  verticalNumBlocks: 75
+  horizontalNumBlocks: 17
+  verticalNumBlocks: 13
   deadEnds: 1
-  logEnable: 1
+  logEnable: 0
   attemptsToPlaceRooms: 200
   roomExtraSize: 1
   seed: 100

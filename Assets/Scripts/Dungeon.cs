@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Constant;
+using DungeonUtilities;
 
 public class Dungeon
 {
@@ -269,7 +269,7 @@ public class Dungeon
     {
         _passageDirections.Clear();
 
-        foreach (var dir in Container.DIRECTIONS)
+        foreach (var dir in Container.DIRECTIONS)    
         {
             var x = (_currentCell + dir * (_passageWidthInBlocks + 1)).x;
             var y = (_currentCell + dir * (_passageWidthInBlocks + 1)).y;
