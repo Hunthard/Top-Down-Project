@@ -96,8 +96,7 @@ public class DungeonGenerator : MonoBehaviour
         globalLight = GameObject.Find("Global Light 2D");
         
         Prepare();
-        // кол-во блоков * ширину коридора + кол-во блоков - 1 + 2 блока для границ
-        
+
         _dungeon = new Dungeon(Parameters, seed);
         
         _dungeon.Generate(attemptsToPlaceRooms, roomExtraSize, deadEnds, logEnable);
@@ -113,10 +112,15 @@ public class DungeonGenerator : MonoBehaviour
         Parameters.borderWidthInBlocks = 1;
         Parameters.gateWidthInBlocks = (int) GateWidth;
 
-        _width = Parameters.passageWidthInBlocks * Parameters.widthInBlocks + Parameters.widthInBlocks - 1 +
-                 2 * Parameters.borderWidthInBlocks;
-        _height = Parameters.passageWidthInBlocks * Parameters.heightInBlocks + Parameters.heightInBlocks - 1 +
-                  2 * Parameters.borderWidthInBlocks;
+        // кол-во блоков * ширину коридора + кол-во блоков - 1 + 2 блока для границ
+        _width = Parameters.passageWidthInBlocks 
+                 * Parameters.widthInBlocks 
+                 + Parameters.widthInBlocks - 1 
+                 + 2 * Parameters.borderWidthInBlocks;
+        _height = Parameters.passageWidthInBlocks
+                  * Parameters.heightInBlocks
+                  + Parameters.heightInBlocks - 1
+                  + 2 * Parameters.borderWidthInBlocks;
 
         grid.GetComponent<PolygonCollider2D>().SetPath(0, new []
         {
@@ -180,23 +184,6 @@ public class DungeonGenerator : MonoBehaviour
         colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().GenerateGeometry();
         Debug.LogError("5 " + colliderLayerTilemap.gameObject.GetComponent<CompositeCollider2D>().pathCount);
         colliderLayerTilemap.SetTile(Vector3Int.zero, wallTile);
-
-        // Костыли чтобы ShadowCaster2D не кидал тени на стены
-        int layersCount = SortingLayer.layers.Length - 1;
-        int[] layerWithoutWalls = new int[layersCount];
-
-        for (int layerIndex = 0; layerIndex < layersCount; layerIndex++)
-        {
-            if (SortingLayer.layers[layerIndex].name != "Walls")
-            {
-                layerWithoutWalls[layerIndex] = SortingLayer.layers[layerIndex].id;
-            }
-        }
-        
-        var shadowCaster2D = colliderLayerTilemap.GetComponentInChildren<ShadowCaster2D>();
-
-        shadowCaster2D.GetType().GetField("m_ApplyToSortingLayers", BindingFlags.NonPublic | BindingFlags.Instance)
-            .SetValue(shadowCaster2D, layerWithoutWalls);
     }
 
     private void DrawDungeon(Dungeon dungeon)
@@ -250,7 +237,6 @@ public class DungeonGenerator : MonoBehaviour
     }
 
     private List<Vector3> _pointsInPath;
-    private List<Vector2Int> _cellList;
     public void SetWallShadows()
     {
         _pointsInPath = new List<Vector3>(_width * _height / 2);
@@ -306,27 +292,24 @@ public class DungeonGenerator : MonoBehaviour
         _pointsInPath.Add(new Vector3(0, 0));
         _pointsInPath.Add(new Vector3(0, 2));
         _pointsInPath.Add(new Vector3(1, 2));
+        
+        // Костыли чтобы ShadowCaster2D не кидал тени на стены
+        int layersCount = SortingLayer.layers.Length - 1;
+        int[] layerWithoutWalls = new int[layersCount];
 
-        TempNamespace.ShadowCaster2DGenerator.GenerateTilemapShadowCasters(_pointsInPath);
-    }
-
-    public void AddToPath(Vector2Int currentCell)
-    {
-        foreach (var direction in Container.DIRECTIONS)
+        for (int layerIndex = 0; layerIndex < layersCount; layerIndex++)
         {
-            var x = currentCell.x + direction.x;
-            var y = currentCell.y + direction.y;
-            
-            if (x > 0 && x < _width && y > 0 && y < _height &&
-                _dungeon[x, y] == 0)
+            if (SortingLayer.layers[layerIndex].name != "Walls")
             {
-                _cellList.Add(new Vector2Int(x, y));
-
-                if (direction == Vector2Int.up)
-                {
-                    
-                }
+                layerWithoutWalls[layerIndex] = SortingLayer.layers[layerIndex].id;
             }
         }
+
+        var shadowCaster2D = TempNamespace.ShadowCaster2DGenerator.GenerateTilemapShadowCasters(_pointsInPath).GetComponent<ShadowCaster2D>();
+        
+        shadowCaster2D.GetType().GetField(
+                "m_ApplyToSortingLayers", 
+                BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.SetValue(shadowCaster2D, layerWithoutWalls);
     }
 }

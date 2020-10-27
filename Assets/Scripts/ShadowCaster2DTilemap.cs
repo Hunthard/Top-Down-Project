@@ -71,7 +71,7 @@ namespace TempNamespace
         /// It is recommended to call this method in editor only.
         /// </remarks>
         /// <param name="collider">The collider which will be the parent of the new shadow casters.</param>
-        public static void GenerateTilemapShadowCasters(List<Vector3> pointsInPath3D)
+        public static GameObject GenerateTilemapShadowCasters(List<Vector3> pointsInPath3D)
         {
             GameObject newShadowCaster = new GameObject("ShadowCaster2D");
             newShadowCaster.isStatic = true;
@@ -83,6 +83,8 @@ namespace TempNamespace
                 int.MaxValue)); // The hashing function GetShapePathHash could be copied from the LightUtility class
             
             pointsInPath3D.Clear();
+
+            return newShadowCaster;
         }
 
     }
